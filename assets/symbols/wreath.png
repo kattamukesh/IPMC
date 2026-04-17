@@ -1,5 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="128" height="128">
-  <rect width="24" height="24" rx="4" fill="#1a1a28"/>
-  <path d="M12 4 C8 4 5 7 5 11 C5 14 7 16.5 10 17.5 L10 20 L14 20 L14 17.5 C17 16.5 19 14 19 11 C19 7 16 4 12 4 Z M9 11 C9 9.3 10.3 8 12 8 C13.7 8 15 9.3 15 11 C15 12.7 13.7 14 12 14 C10.3 14 9 12.7 9 11 Z" fill="#7a9a3a" stroke="#7a9a3a" stroke-width="0.3" stroke-linejoin="round" stroke-linecap="round" opacity="0.9"/>
-  <text x="12" y="23.5" text-anchor="middle" font-family="serif" font-size="2.2" fill="#7a9a3a" opacity="0.7">Wreath</text>
-</svg>

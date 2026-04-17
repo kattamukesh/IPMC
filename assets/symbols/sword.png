@@ -1,5 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="128" height="128">
-  <rect width="24" height="24" rx="4" fill="#1a1a28"/>
-  <path d="M11 3 L13 3 L13 16 L15 18 L13 18 L12 20 L11 18 L9 18 L11 16 Z M9 10 L15 10" fill="#8a8a9a" stroke="#8a8a9a" stroke-width="0.3" stroke-linejoin="round" stroke-linecap="round" opacity="0.9"/>
-  <text x="12" y="23.5" text-anchor="middle" font-family="serif" font-size="2.2" fill="#8a8a9a" opacity="0.7">Sword</text>
-</svg>
