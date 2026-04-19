@@ -209,7 +209,6 @@
 //---------------sreya--------------------
 import React, { useState, useCallback } from 'react';
 import TitleBar from './components/TitleBar';
-import StepIndicator from './components/StepIndicator';
 import InputScreen from './pages/InputScreen';
 import SymbolPickerScreen from './pages/SymbolPickerScreen';
 import ResultScreen from './pages/ResultScreen';
@@ -285,15 +284,6 @@ export default function App() {
         <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
           <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-gold-600/3 blur-3xl" />
           <div className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full bg-gold-700/3 blur-3xl" />
-          <div className="absolute top-12 left-6 font-display text-imperial-border text-4xl select-none">✦</div>
-          <div className="absolute top-12 right-6 font-display text-imperial-border text-4xl select-none">✦</div>
-          <div className="absolute bottom-6 left-6 font-display text-imperial-border text-4xl select-none">✦</div>
-          <div className="absolute bottom-6 right-6 font-display text-imperial-border text-4xl select-none">✦</div>
-        </div>
-
-        {/* Step indicator */}
-        <div className="relative z-10 border-b border-imperial-border bg-imperial-darker/80 backdrop-blur-sm">
-          <StepIndicator currentStep={indicatorStep} />
         </div>
 
         {/* Content area */}

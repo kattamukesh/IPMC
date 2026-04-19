@@ -3,6 +3,7 @@ import { api } from '../api';
 import SymbolCard from '../components/SymbolCard';
 import CoinList from '../components/CoinList';
 import CategoryFilter from '../components/CategoryFilter';
+import SelectedSymbolsDisplay from '../components/SelectedSymbolsDisplay';
 
 export default function SymbolPickerScreen({
   sessionId,
@@ -113,37 +114,8 @@ export default function SymbolPickerScreen({
           </p>
         </div>
 
-        {/* ── Previously selected symbols (always visible) ── */}
-        {selectedSymbols.length > 0 && (
-          <div className="mb-5">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-gold-500 text-xs">✓</span>
-              <span className="font-display text-xs tracking-widest uppercase text-gold-500">
-                Selected ({selectedSymbols.length}/5)
-              </span>
-              <div className="flex-1 h-px bg-gold-800/40" />
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {selectedSymbols.map((sym, i) => (
-                <div
-                  key={sym.id}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-gold-500/50 bg-gold-500/10"
-                >
-                  <span className="font-display text-xs text-gold-600">{i + 1}.</span>
-                  <img
-                    src={`http://localhost:3001${sym.imageUrl}`}
-                    alt={sym.label}
-                    className="w-5 h-5 object-contain"
-                    onError={(e) => { e.target.style.display = 'none'; }}
-                  />
-                  <span className="font-display text-xs tracking-wider text-gold-300 uppercase">
-                    {sym.label}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* ── Selected symbols display ── */}
+        <SelectedSymbolsDisplay selectedSymbols={selectedSymbols} maxSymbols={5} />
 
         {/* ── Category Filter ── */}
         {!loading && categories.length > 0 && !maxReached && (
