@@ -124,4 +124,10 @@ export const api = {
   },
 
   symbolImageUrl: (filename) => `${BASE}/assets/symbols/${filename}`,
+
+  /**
+   * Get all coins with their symbols for gallery display
+   */
+  getCoinsGallery: () =>
+    fetch(`${BASE}/coins/gallery`).then(r => r.json()),
 };

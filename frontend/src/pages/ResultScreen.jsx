@@ -42,7 +42,7 @@ function CoinResultCard({ coin, isOnly }) {
   );
 }
 
-export default function ResultScreen({ sessionId, imagePreview, onReset }) {
+export default function ResultScreen({ sessionId, imagePreview, weightWarning, weight, onReset }) {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -131,12 +131,17 @@ export default function ResultScreen({ sessionId, imagePreview, onReset }) {
         </div>
 
         {/* Weight Warning */}
-        {!weightValid && weightNote && (
+        {weightWarning && (
           <div className="border border-amber-700/50 bg-amber-900/10 rounded-lg p-4 flex gap-3">
             <span className="text-amber-400 shrink-0 text-lg">⚠</span>
             <div>
               <div className="font-display text-xs tracking-widest uppercase text-amber-400 mb-1">Weight Warning</div>
-              <p className="font-body text-sm text-amber-300/80">{weightNote}</p>
+              <p className="font-body text-sm text-amber-300/80">{weightWarning}</p>
+              {weight && (
+                <p className="font-mono text-xs text-amber-300/60 mt-1">
+                  Entered weight: {weight.toFixed(2)}g
+                </p>
+              )}
             </div>
           </div>
         )}

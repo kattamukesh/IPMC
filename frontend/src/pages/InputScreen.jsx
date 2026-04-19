@@ -25,14 +25,38 @@ const SIZE_OPTIONS = [
   },
 ];
 
-export default function InputScreen({ onNext, sessionId, setSessionId }) {
+export default function InputScreen({ onNext, sessionId, setSessionId, onBack }) {
   const [weight, setWeight] = useState('');
   const [size, setSize] = useState('');
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [weightWarning, setWeightWarning] = useState(null);
   const fileInputRef = useRef();
+
+  // Weight validation: check if weight is within ±20% of 3.4g
+  const validateWeight = (weightValue) => {
+    if (!weightValue) return null;
+
+    const weightNum = parseFloat(weightValue);
+    const idealWeight = 3.4;
+    const tolerance = 0.2; // 20%
+    const minWeight = idealWeight * (1 - tolerance);
+    const maxWeight = idealWeight * (1 + tolerance);
+
+    if (weightNum < minWeight || weightNum > maxWeight) {
+      return 'The weight of the input coin does not fall in the ideal range of an imperial coin, so please verify its authenticity.';
+    }
+    return null;
+  };
+
+  // Update weight warning when weight changes
+  const handleWeightChange = (value) => {
+    setWeight(value);
+    const warning = validateWeight(value);
+    setWeightWarning(warning);
+  };
 
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
@@ -63,7 +87,12 @@ export default function InputScreen({ onNext, sessionId, setSessionId }) {
         try { await api.uploadImage(sid, imageFile); } catch (_) {}
       }
 
-      onNext({ ...result, imagePreview });
+      onNext({
+        ...result,
+        imagePreview,
+        weightWarning: weight ? validateWeight(weight) : null,
+        weight: weight ? parseFloat(weight) : null
+      });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -81,6 +110,15 @@ export default function InputScreen({ onNext, sessionId, setSessionId }) {
             <div className="w-16 h-16 rounded-full border-2 border-gold-500/40 bg-gold-500/5 flex items-center justify-center animate-glow-pulse">
               <span className="text-3xl text-gold-400">♛</span>
             </div>
+          </div>
+          <div className="flex items-center justify-between">
+            <button
+              onClick={onBack}
+              className="btn-secondary text-sm"
+            >
+              ← Back to Home
+            </button>
+            <div className="flex-1"></div>
           </div>
           <h2 className="font-display text-2xl tracking-widest text-gold-200 uppercase">Coin Analysis</h2>
           <p className="font-body text-base text-imperial-muted italic">
@@ -106,13 +144,22 @@ export default function InputScreen({ onNext, sessionId, setSessionId }) {
               step="0.01"
               placeholder="Enter weight in grams…"
               value={weight}
-              onChange={e => setWeight(e.target.value)}
+              onChange={e => handleWeightChange(e.target.value)}
               className="input-field"
             />
             <span className="font-display text-xs text-gold-500 tracking-wider whitespace-nowrap">grams</span>
           </div>
+
+          {/* Weight Warning */}
+          {weightWarning && (
+            <div className="border border-amber-700/50 bg-amber-900/10 rounded-lg p-3 flex gap-3">
+              <span className="text-amber-400 shrink-0">⚠</span>
+              <p className="font-body text-sm text-amber-300/80">{weightWarning}</p>
+            </div>
+          )}
+
           <p className="font-body text-xs text-imperial-muted">
-            If the weight falls outside ±20% of any known imperial coin standard, a warning will be shown in results.
+            Ideal range: 2.72g - 4.08g (±20% of 3.4g standard)
           </p>
         </div>
 

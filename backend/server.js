@@ -975,6 +975,67 @@ app.get('/categories', (req, res) => {
   res.json({ categories: categories.map(c => c.category) });
 });
 
+// GET /coins/gallery — get all coins with their symbols for gallery display
+app.get('/coins/gallery', (req, res) => {
+  try {
+    const db = getDb();
+
+    // Get all coins from the coins table
+    const coins = db.prepare(`
+      SELECT label, id, name, series, size_category
+      FROM coins
+      ORDER BY series ASC, name ASC
+    `).all();
+
+    // Get all symbols attached to coins via coin_symbols
+    const coinSymbols = db.prepare(`
+      SELECT cs.coin_label, cs.position, s.id as symbol_id, s.label, s.description, s.image_filename
+      FROM coin_symbols cs
+      INNER JOIN symbols s ON cs.symbol_label = s.label
+      ORDER BY cs.coin_label ASC, cs.position ASC
+    `).all();
+
+    const symbolsByCoin = {};
+    coinSymbols.forEach(cs => {
+      if (!symbolsByCoin[cs.coin_label]) {
+        symbolsByCoin[cs.coin_label] = [];
+      }
+      symbolsByCoin[cs.coin_label].push({
+        id: cs.symbol_id,
+        label: cs.label,
+        description: cs.description,
+        imageUrl: `/assets/symbols/${cs.image_filename}`,
+        position: cs.position,
+      });
+    });
+
+    const coinsWithSymbols = coins.map(coin => ({
+      id: coin.id,
+      label: coin.label,
+      name: coin.name,
+      series: coin.series,
+      sizeCategory: coin.size_category,
+      symbols: symbolsByCoin[coin.label] || []
+    }));
+
+    const coinsBySeries = {};
+    coinsWithSymbols.forEach(coin => {
+      if (!coinsBySeries[coin.series]) {
+        coinsBySeries[coin.series] = [];
+      }
+      coinsBySeries[coin.series].push(coin);
+    });
+
+    res.json({
+      coins: coinsWithSymbols,
+      coinsBySeries,
+    });
+  } catch (error) {
+    console.error('Error in /coins/gallery:', error);
+    res.status(500).json({ error: 'Internal server error', details: error.message });
+  }
+});
+
 // POST /upload-image
 app.post('/upload-image', upload.single('coinImage'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });

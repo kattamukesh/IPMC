@@ -209,32 +209,57 @@
 //---------------sreya--------------------
 import React, { useState, useCallback } from 'react';
 import TitleBar from './components/TitleBar';
+import LandingPage from './pages/LandingPage';
+import CoinsGallery from './pages/CoinsGallery';
 import InputScreen from './pages/InputScreen';
 import SymbolPickerScreen from './pages/SymbolPickerScreen';
 import ResultScreen from './pages/ResultScreen';
 import { api } from './api';
 
 // Steps:
-// 0 = Input (weight / size / image)
-// 1 = Symbol picking (looping, up to 5 rounds)
-// 2 = Result
+// 0 = Landing Page
+// 1 = Coin Gallery
+// 2 = Input (weight / size / image)
+// 3 = Symbol picking (looping, up to 5 rounds)
+// 4 = Result
 
-const STEP_INPUT = 0;
-const STEP_SYMBOLS = 1;
-const STEP_RESULT = 2;
+const STEP_LANDING = 0;
+const STEP_GALLERY = 1;
+const STEP_INPUT = 2;
+const STEP_SYMBOLS = 3;
+const STEP_RESULT = 4;
 
 export default function App() {
-  const [step, setStep] = useState(STEP_INPUT);
+  const [step, setStep] = useState(STEP_LANDING);
   const [sessionId, setSessionId] = useState(null);
   const [possibleCoins, setPossibleCoins] = useState([]);
   const [imagePreview, setImagePreview] = useState(null);
+  const [weightWarning, setWeightWarning] = useState(null);
+  const [weight, setWeight] = useState(null);
+
+  // Landing page handlers
+  const handleStartIdentification = useCallback(() => {
+    setStep(STEP_INPUT);
+  }, []);
+
+  const handleViewGallery = useCallback(() => {
+    setStep(STEP_GALLERY);
+  }, []);
+
+  // Gallery back handler
+  const handleGalleryBack = useCallback(() => {
+    setStep(STEP_LANDING);
+  }, []);
 
   // Map internal step → StepIndicator index (keep existing indicator compatible)
   const indicatorStep = step === STEP_INPUT ? 0 : step === STEP_SYMBOLS ? 1 : 7;
 
   // InputScreen finished → move to symbol picking
-  const handleInputNext = useCallback(({ imagePreview: ip }) => {
+  const handleInputNext = useCallback(({ imagePreview: ip, weightWarning, weight }) => {
     if (ip) setImagePreview(ip);
+    // Store weight warning for results screen
+    setWeightWarning(weightWarning);
+    setWeight(weight);
     setStep(STEP_SYMBOLS);
   }, []);
 
@@ -269,7 +294,9 @@ export default function App() {
     setSessionId(null);
     setPossibleCoins([]);
     setImagePreview(null);
-    setStep(STEP_INPUT);
+    setWeightWarning(null);
+    setWeight(null);
+    setStep(STEP_LANDING);
   }, [sessionId]);
 
   return (
@@ -288,11 +315,23 @@ export default function App() {
 
         {/* Content area */}
         <div className="flex-1 relative z-10 overflow-hidden flex flex-col">
+          {step === STEP_LANDING && (
+            <LandingPage
+              onStartIdentification={handleStartIdentification}
+              onViewGallery={handleViewGallery}
+            />
+          )}
+
+          {step === STEP_GALLERY && (
+            <CoinsGallery onBack={handleGalleryBack} />
+          )}
+
           {step === STEP_INPUT && (
             <InputScreen
               onNext={handleInputNext}
               sessionId={sessionId}
               setSessionId={setSessionId}
+              onBack={() => setStep(STEP_LANDING)}
             />
           )}
 
@@ -310,6 +349,8 @@ export default function App() {
             <ResultScreen
               sessionId={sessionId}
               imagePreview={imagePreview}
+              weightWarning={weightWarning}
+              weight={weight}
               onReset={handleReset}
             />
           )}
