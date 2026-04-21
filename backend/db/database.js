@@ -60,86 +60,107 @@ function initSchema(db) {
   `);
 }
 
+function parseCSV(content) {
+  const lines = content.split('\n').map(l => l.trim()).filter(Boolean);
+  if (lines.length < 2) throw new Error('CSV must have a header row and at least one data row');
+
+  const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/['"]/g, ''));
+  
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i];
+    // Handle quoted fields
+    const fields = [];
+    let inQuote = false;
+    let current = '';
+    for (const ch of line) {
+      if (ch === '"') { inQuote = !inQuote; continue; }
+      if (ch === ',' && !inQuote) { fields.push(current.trim()); current = ''; continue; }
+      current += ch;
+    }
+    fields.push(current.trim());
+
+    const row = {};
+    headers.forEach((h, idx) => { row[h] = fields[idx] || ''; });
+    rows.push(row);
+  }
+  return { headers, rows };
+}
+
 function seedData(db) {
   const count = db.prepare('SELECT COUNT(*) as cnt FROM coins').get();
   if (count.cnt > 0) return;
 
-  console.log('[DB] Seeding Series 1 data...');
+  console.log('[DB] Seeding data from CSV files...');
 
-  // ---------------------------
-  // SYMBOLS (numeric labels with categories)
-  // ---------------------------
-  const insertSymbol = db.prepare(
-    'INSERT INTO symbols (label, category, description, image_filename) VALUES (?, ?, ?, ?)'
-  );
+  const scriptsDir = path.join(__dirname, '..', '..', 'scripts');
 
-  const symbolData = [
-    ['36', 'Heraldic', `Symbol 36`, '36.png'],
-    ['40', 'Heraldic', `Symbol 40`, '40.png'],
-    ['59', 'Numismatic', `Symbol 59`, '59.png'],
-    ['147', 'Portrait', `Symbol 147`, '147.png'],
-    ['148', 'Portrait', `Symbol 148`, '148.png'],
-    ['149', 'Portrait', `Symbol 149`, '149.png'],
-    ['283', 'Heraldic', `Symbol 283`, '283.png'],
-    ['377', 'Portrait', `Symbol 377`, '377.png'],
-    ['468', 'Emblem', `Symbol 468`, '468.png'],
-    ['484', 'Numismatic', `Symbol 484`, '484.png'],
-    ['485', 'Numismatic', `Symbol 485`, '485.png'],
-  ];
-
-  const symbolIds = {};
-  symbolData.forEach(([label, category, description, filename]) => {
-    const res = insertSymbol.run(label, category, description, filename);
-    symbolIds[label] = res.lastInsertRowid;
-  });
-
-  // ---------------------------
-  // COINS (Series 1)
-  // ---------------------------
-  const insertCoin = db.prepare(`
-    INSERT INTO coins (label, name, series, size_category)
-    VALUES (?, ?, ?, ?)
-  `);
-
-  const coins = [
-    'coin1','coin2','coin3','coin4','coin5','coin6','coin7','coin7a','coin7b','coin7c'
-  ];
-
-  const coinIds = {};
-  coins.forEach(c => {
-    const res = insertCoin.run(c, c, 'Series 1', 'large');
-    coinIds[c] = res.lastInsertRowid;
-  });
-
-  // ---------------------------
-  // COIN-SYMBOL MAPPING
-  // ---------------------------
-  const insertCoinSymbol = db.prepare(
-    'INSERT INTO coin_symbols (coin_label, symbol_label, position) VALUES (?, ?, ?)'
-  );
-
-  const mappings = {
-    coin1: ['468','377','36', null, null],
-    coin2: [null,'377','36', null, null],
-    coin3: ['468','377','36','283', null],
-    coin4: ['468','377','36','283','59'],
-    coin5: ['468','377','36','148', null],
-    coin6: ['468','377','36','149', null],
-    coin7: ['468','377','36','149','40'],
-    coin7a:['468','377','36','149','484'],
-    coin7b:['468','377','36','147', null],
-    coin7c:['468','377','36','485', null],
-  };
-
-  Object.entries(mappings).forEach(([coin, symbols]) => {
-
-    symbols.forEach((symLabel, index) => {
-      if (!symLabel) return;
-      insertCoinSymbol.run(coin, symLabel, index + 1);
+  // Load symbols from CSV
+  const symbolsCsvPath = path.join(scriptsDir, 'symbols.csv');
+  if (fs.existsSync(symbolsCsvPath)) {
+    const symbolsContent = fs.readFileSync(symbolsCsvPath, 'utf8');
+    const { rows: symbolRows } = parseCSV(symbolsContent);
+    const insertSymbol = db.prepare(
+      'INSERT INTO symbols (label, category, description, image_filename) VALUES (?, ?, ?, ?)'
+    );
+    symbolRows.forEach(row => {
+      const imageFilename = `${row.label}.png`;
+      insertSymbol.run(row.label, row.category, row.description, imageFilename);
     });
-  });
+    console.log(`[DB] Inserted ${symbolRows.length} symbols`);
+  } else {
+    console.log('[DB] symbols.csv not found, skipping symbols');
+  }
 
-  console.log('[DB] Series 1 seed complete.');
+  // Load coins from CSV
+  const coinsCsvPath = path.join(scriptsDir, 'coins.csv');
+  if (fs.existsSync(coinsCsvPath)) {
+    const coinsContent = fs.readFileSync(coinsCsvPath, 'utf8');
+    const { rows: coinRows } = parseCSV(coinsContent);
+    const insertCoin = db.prepare(
+      'INSERT INTO coins (label, name, series, size_category) VALUES (?, ?, ?, ?)'
+    );
+    coinRows.forEach(row => {
+      const name = `coin_${row.label}`;
+      const sizeCategory = row.size_category.toLowerCase();
+      insertCoin.run(row.label, name, row.series, sizeCategory);
+    });
+    console.log(`[DB] Inserted ${coinRows.length} coins`);
+  } else {
+    console.log('[DB] coins.csv not found, skipping coins');
+  }
+
+  // Load coin_symbols from CSV
+  const coinSymbolsCsvPath = path.join(scriptsDir, 'coin_symbols.csv');
+  if (fs.existsSync(coinSymbolsCsvPath)) {
+    const coinSymbolsContent = fs.readFileSync(coinSymbolsCsvPath, 'utf8');
+    const { rows: coinSymbolRows } = parseCSV(coinSymbolsContent);
+    const insertCoinSymbol = db.prepare(
+      'INSERT INTO coin_symbols (coin_label, symbol_label, position) VALUES (?, ?, ?)'
+    );
+    const checkCoin = db.prepare('SELECT 1 FROM coins WHERE label = ?');
+    const checkSymbol = db.prepare('SELECT 1 FROM symbols WHERE label = ?');
+    let insertedCount = 0;
+    coinSymbolRows.forEach(row => {
+      for (let pos = 1; pos <= 5; pos++) {
+        const symbolLabel = row[`symbol${pos}`];
+        if (symbolLabel && symbolLabel.trim() !== '') {
+          const symLabel = symbolLabel.trim();
+          if (checkCoin.get(row.coin_label) && checkSymbol.get(symLabel)) {
+            insertCoinSymbol.run(row.coin_label, symLabel, pos);
+            insertedCount++;
+          } else {
+            console.warn(`[DB] Skipping invalid mapping: coin ${row.coin_label}, symbol ${symLabel} at position ${pos}`);
+          }
+        }
+      }
+    });
+    console.log(`[DB] Inserted ${insertedCount} coin-symbol mappings`);
+  } else {
+    console.log('[DB] coin_symbols.csv not found, skipping coin-symbols');
+  }
+
+  console.log('[DB] CSV seeding complete.');
 }
 // function seedData(db) {
 //   const count = db.prepare('SELECT COUNT(*) as cnt FROM coins').get();
