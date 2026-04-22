@@ -42,7 +42,7 @@ function CoinResultCard({ coin, isOnly }) {
   );
 }
 
-export default function ResultScreen({ sessionId, imagePreview, weightWarning, weight, onReset }) {
+export default function ResultScreen({ sessionId, imagePreview, weightWarning, weight, onReset, onBackToHome }) {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -245,18 +245,27 @@ export default function ResultScreen({ sessionId, imagePreview, weightWarning, w
         {/* Actions */}
         <div className="flex items-center justify-between pb-4">
           <button
-            onClick={onReset}
-            className="btn-primary"
+            onClick={onBackToHome}
+            className="btn-secondary"
           >
-            ↺ Identify Another Coin
+            ← Back to Home
           </button>
 
-          <button
-            onClick={() => window.print()}
-            className="btn-ghost text-xs"
-          >
-            Print Results
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onReset}
+              className="btn-primary"
+            >
+              ↺ Identify Another Coin
+            </button>
+
+            <button
+              onClick={() => window.print()}
+              className="btn-ghost text-xs"
+            >
+              Print Results
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -116,11 +116,11 @@ export default function LandingPage({ onStartIdentification, onViewGallery }) {
           </div>
         </div>
 
-        {/* Bottom Section with Gallery Button */}
+        {/* Bottom Section with Gallery Buttons */}
         <div className="bg-imperial-darker/50 border-t border-imperial-border">
           <div className="max-w-4xl mx-auto p-8">
             <div className="text-center space-y-6">
-              <div className="flex justify-center">
+              <div className="flex justify-center gap-4">
                 <button
                   onClick={onViewGallery}
                   className="btn-secondary inline-flex items-center gap-3"
@@ -128,9 +128,16 @@ export default function LandingPage({ onStartIdentification, onViewGallery }) {
                   <span className="text-xl">🪙</span>
                   <span>View Coin Gallery</span>
                 </button>
+                <button
+                  onClick={() => onViewGallery('symbols')}
+                  className="btn-secondary inline-flex items-center gap-3"
+                >
+                  <span className="text-xl">✦</span>
+                  <span>View Symbol Gallery</span>
+                </button>
               </div>
               <p className="font-body text-sm text-imperial-muted">
-                Explore our comprehensive collection of imperial coins with their symbol mappings
+                Explore our comprehensive collection of imperial coins and symbols with their historical mappings
               </p>
             </div>
           </div>

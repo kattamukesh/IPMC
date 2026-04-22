@@ -208,9 +208,10 @@
 
 //---------------sreya--------------------
 import React, { useState, useCallback } from 'react';
-import TitleBar from './components/TitleBar';
+import AppHeader from './components/AppHeader';
 import LandingPage from './pages/LandingPage';
 import CoinsGallery from './pages/CoinsGallery';
+import SymbolGallery from './pages/SymbolGallery';
 import InputScreen from './pages/InputScreen';
 import SymbolPickerScreen from './pages/SymbolPickerScreen';
 import ResultScreen from './pages/ResultScreen';
@@ -219,15 +220,17 @@ import { api } from './api';
 // Steps:
 // 0 = Landing Page
 // 1 = Coin Gallery
-// 2 = Input (weight / size / image)
-// 3 = Symbol picking (looping, up to 5 rounds)
-// 4 = Result
+// 2 = Symbol Gallery
+// 3 = Input (weight / size / image)
+// 4 = Symbol picking (looping, up to 5 rounds)
+// 5 = Result
 
 const STEP_LANDING = 0;
-const STEP_GALLERY = 1;
-const STEP_INPUT = 2;
-const STEP_SYMBOLS = 3;
-const STEP_RESULT = 4;
+const STEP_COIN_GALLERY = 1;
+const STEP_SYMBOL_GALLERY = 2;
+const STEP_INPUT = 3;
+const STEP_SYMBOLS = 4;
+const STEP_RESULT = 5;
 
 export default function App() {
   const [step, setStep] = useState(STEP_LANDING);
@@ -242,8 +245,8 @@ export default function App() {
     setStep(STEP_INPUT);
   }, []);
 
-  const handleViewGallery = useCallback(() => {
-    setStep(STEP_GALLERY);
+  const handleViewGallery = useCallback((galleryType = 'coins') => {
+    setStep(galleryType === 'symbols' ? STEP_SYMBOL_GALLERY : STEP_COIN_GALLERY);
   }, []);
 
   // Gallery back handler
@@ -301,8 +304,14 @@ export default function App() {
 
   return (
     <div className="h-screen flex flex-col bg-imperial-dark overflow-hidden">
-      {/* Titlebar */}
-      <TitleBar />
+      {/* Header */}
+      <AppHeader
+        onNavigateHome={() => setStep(STEP_LANDING)}
+        onNavigateCoinGallery={() => setStep(STEP_COIN_GALLERY)}
+        onNavigateSymbolGallery={() => setStep(STEP_SYMBOL_GALLERY)}
+        onStartIdentification={handleStartIdentification}
+        hideIdentifyButton={step !== STEP_LANDING && step !== STEP_COIN_GALLERY && step !== STEP_SYMBOL_GALLERY}
+      />
 
       {/* Main layout */}
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -322,8 +331,12 @@ export default function App() {
             />
           )}
 
-          {step === STEP_GALLERY && (
+          {step === STEP_COIN_GALLERY && (
             <CoinsGallery onBack={handleGalleryBack} />
+          )}
+
+          {step === STEP_SYMBOL_GALLERY && (
+            <SymbolGallery onBack={handleGalleryBack} />
           )}
 
           {step === STEP_INPUT && (
@@ -352,26 +365,9 @@ export default function App() {
               weightWarning={weightWarning}
               weight={weight}
               onReset={handleReset}
+              onBackToHome={() => setStep(STEP_LANDING)}
             />
           )}
-        </div>
-
-        {/* Status bar */}
-        <div className="relative z-10 border-t border-imperial-border bg-imperial-darker/60 px-4 py-1.5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-            <span className="font-mono text-xs text-imperial-muted">IPMC v2.0 · Offline</span>
-          </div>
-          {sessionId && (
-            <span className="font-mono text-xs text-imperial-muted">
-              Session: {sessionId.slice(0, 8)}…
-            </span>
-          )}
-          <span className="font-mono text-xs text-imperial-muted">
-            {possibleCoins.length > 0
-              ? `${possibleCoins.length} candidate${possibleCoins.length !== 1 ? 's' : ''}`
-              : 'Ready'}
-          </span>
         </div>
       </div>
     </div>

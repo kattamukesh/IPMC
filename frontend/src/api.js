@@ -130,4 +130,10 @@ export const api = {
    */
   getCoinsGallery: () =>
     fetch(`${BASE}/coins/gallery`).then(r => r.json()),
+
+  /**
+   * Get all symbols with their associated coins for gallery display
+   */
+  getSymbolsGallery: () =>
+    fetch(`${BASE}/symbols/gallery`).then(r => r.json()),
 };

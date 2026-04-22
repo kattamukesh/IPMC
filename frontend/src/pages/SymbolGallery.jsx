@@ -1,64 +1,72 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 
-function CoinGalleryCard({ coin }) {
-  // Sort symbols by position
-  const sortedSymbols = [...(coin.symbols || [])].sort((a, b) => a.position - b.position);
-
+function SymbolGalleryCard({ symbol }) {
   return (
     <div className="card p-6 space-y-4">
-      {/* Coin Header */}
+      {/* Symbol Header */}
       <div className="flex items-start gap-4">
-        <div className="w-12 h-12 rounded-full border border-gold-500/40 bg-gold-500/5 flex items-center justify-center shrink-0">
-          <span className="text-xl text-gold-400">♛</span>
+        <div className="w-16 h-16 rounded-lg border border-gold-500/40 bg-gold-500/5 flex items-center justify-center shrink-0">
+          <img
+            src={`http://localhost:3001${symbol.imageUrl}`}
+            alt={symbol.label}
+            className="w-full h-full object-contain"
+            onError={(e) => { e.target.style.display = 'none'; }}
+          />
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="font-display text-lg tracking-wide text-gold-200 truncate">
-            {coin.name}
-          </h3>
-          <p className="font-body text-sm text-imperial-muted">{coin.series}</p>
-          {coin.weight && (
-            <p className="font-mono text-xs text-imperial-muted mt-1">
-              Weight: {coin.weight.toFixed(2)}g
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <h3 className="font-display text-lg tracking-wide text-gold-200">
+                Symbol {symbol.label}
+              </h3>
+              {symbol.category && (
+                <p className="font-body text-xs text-gold-500 uppercase tracking-widest mt-0.5">
+                  {symbol.category}
+                </p>
+              )}
+            </div>
+            <div className="bg-gold-500/10 border border-gold-500/30 rounded px-2.5 py-1 shrink-0">
+              <span className="font-display text-xs text-gold-400 font-semibold">
+                {symbol.coinCount || 0}
+              </span>
+            </div>
+          </div>
+          {symbol.description && (
+            <p className="font-body text-sm text-imperial-muted mt-2">
+              {symbol.description}
             </p>
           )}
-          <p className="font-body text-xs text-imperial-muted mt-1 capitalize">
-            Size: {coin.sizeCategory}
-          </p>
         </div>
       </div>
 
-      {/* Symbols Grid */}
+      {/* Associated Coins */}
       <div className="space-y-2">
         <div className="flex items-center gap-2">
-          <span className="text-gold-500 text-xs">✦</span>
+          <span className="text-gold-500 text-xs">♛</span>
           <span className="font-display text-xs tracking-widest uppercase text-gold-500">
-            Symbol Positions ({sortedSymbols.length}/5)
+            Associated Coins ({symbol.coins.length})
           </span>
         </div>
 
-        <div className="grid grid-cols-5 gap-2">
-          {sortedSymbols.map((symbol) => (
+        <div className="grid gap-2 max-h-48 overflow-y-auto">
+          {symbol.coins.map((coin) => (
             <div
-              key={symbol.id}
-              className="aspect-square border border-imperial-border rounded flex items-center justify-center p-1 bg-imperial-surface/50"
-              title={`${symbol.label} (Position ${symbol.position})`}
+              key={coin.id}
+              className="flex items-center gap-3 p-3 rounded border border-imperial-border/30 bg-imperial-surface/50"
             >
-              <img
-                src={`http://localhost:3001${symbol.imageUrl}`}
-                alt={symbol.label}
-                className="w-full h-full object-contain"
-                onError={(e) => { e.target.style.display = 'none'; }}
-              />
-            </div>
-          ))}
-          {/* Fill empty slots */}
-          {Array.from({ length: 5 - sortedSymbols.length }, (_, i) => (
-            <div
-              key={`empty-${i}`}
-              className="aspect-square border border-dashed border-imperial-muted/30 rounded flex items-center justify-center bg-imperial-surface/20"
-            >
-              <span className="text-xs text-imperial-muted/50">-</span>
+              <div className="w-8 h-8 rounded-full border border-gold-600/30 bg-gold-500/5 flex items-center justify-center shrink-0">
+                <span className="text-sm text-gold-400">♛</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="font-display text-sm tracking-wide text-gold-200 truncate">
+                  {coin.name}
+                </h4>
+                <p className="font-body text-xs text-imperial-muted">{coin.series}</p>
+              </div>
+              <div className="text-xs text-imperial-muted font-mono">
+                Pos {coin.position}
+              </div>
             </div>
           ))}
         </div>
@@ -67,51 +75,49 @@ function CoinGalleryCard({ coin }) {
   );
 }
 
-export default function CoinsGallery({ onBack }) {
-  const [coins, setCoins] = useState([]);
-  const [coinsBySeries, setCoinsBySeries] = useState({});
+export default function SymbolGallery({ onBack }) {
+  const [symbols, setSymbols] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [filter, setFilter] = useState('all'); // all, or specific series name
+  const [filter, setFilter] = useState('all'); // all, or specific category
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     setLoading(true);
     setError(null);
-    api.getCoinsGallery()
+    api.getSymbolsGallery()
       .then(data => {
-        setCoins(data.coins || []);
-        setCoinsBySeries(data.coinsBySeries || {});
+        setSymbols(data.symbols || []);
       })
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
 
-  // Filter by series first
-  let filteredCoins = filter === 'all'
-    ? coins
-    : coins.filter(coin => coin.series === filter);
+  // Filter by category first
+  let filteredSymbols = filter === 'all'
+    ? symbols
+    : symbols.filter(symbol => symbol.category === filter);
 
-  // Then filter by search query (name or series)
+  // Then filter by search query (label or description)
   if (searchQuery.trim()) {
     const query = searchQuery.toLowerCase();
-    filteredCoins = filteredCoins.filter(coin =>
-      coin.name.toLowerCase().includes(query) ||
-      coin.series.toLowerCase().includes(query)
+    filteredSymbols = filteredSymbols.filter(symbol =>
+      symbol.label.toLowerCase().includes(query) ||
+      (symbol.description && symbol.description.toLowerCase().includes(query))
     );
   }
 
-  // Get unique series for filter buttons
-  const availableSeries = Object.keys(coinsBySeries).sort();
+  // Get unique categories for filter buttons
+  const availableCategories = [...new Set(symbols.map(s => s.category).filter(Boolean))].sort();
 
   if (loading) return (
     <div className="flex-1 flex items-center justify-center">
       <div className="flex flex-col items-center gap-4">
         <div className="w-16 h-16 rounded-full border-2 border-gold-500/30 animate-spin flex items-center justify-center">
-          <span className="text-2xl text-gold-500">🪙</span>
+          <span className="text-2xl text-gold-500">✦</span>
         </div>
         <span className="font-display text-xs tracking-widest uppercase text-imperial-muted animate-pulse">
-          Loading coin gallery…
+          Loading symbol gallery…
         </span>
       </div>
     </div>
@@ -135,15 +141,15 @@ export default function CoinsGallery({ onBack }) {
         <div className="text-center space-y-4">
           <div className="flex justify-center mb-4">
             <div className="w-16 h-16 rounded-full border-2 border-gold-500/40 bg-gold-500/5 flex items-center justify-center">
-              <span className="text-3xl text-gold-400">🪙</span>
+              <span className="text-3xl text-gold-400">✦</span>
             </div>
           </div>
           <h1 className="font-display text-3xl tracking-widest uppercase text-gold-200">
-            Imperial Coin Gallery
+            Imperial Symbol Gallery
           </h1>
           <p className="font-body text-base text-imperial-muted max-w-2xl mx-auto">
-            Explore our comprehensive collection of British imperial coins from India,
-            featuring their distinctive symbols and historical significance.
+            Explore the complete collection of symbols used in British imperial coins,
+            with their associated coins and historical significance.
           </p>
         </div>
 
@@ -154,7 +160,7 @@ export default function CoinsGallery({ onBack }) {
             <div className="w-full max-w-md">
               <input
                 type="text"
-                placeholder="Search coins by name or series..."
+                placeholder="Search symbols by name or description..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full px-4 py-2.5 rounded border border-imperial-border bg-imperial-surface text-imperial-text placeholder-imperial-muted/60 font-body text-sm focus:outline-none focus:border-gold-500/50 focus:ring-1 focus:ring-gold-500/30 transition-all"
@@ -162,7 +168,7 @@ export default function CoinsGallery({ onBack }) {
             </div>
           </div>
 
-          {/* Series Filter */}
+          {/* Category Filter */}
           <div className="flex justify-center">
             <div className="flex gap-2 p-1 bg-imperial-darker/50 rounded-lg border border-imperial-border flex-wrap justify-center">
               <button
@@ -173,36 +179,36 @@ export default function CoinsGallery({ onBack }) {
                     : 'text-imperial-muted hover:text-gold-400'
                 }`}
               >
-                All Coins
+                All Symbols
               </button>
-              {availableSeries.map(series => (
+              {availableCategories.map(category => (
                 <button
-                  key={series}
-                  onClick={() => setFilter(series)}
+                  key={category}
+                  onClick={() => setFilter(category)}
                   className={`px-4 py-2 rounded text-sm font-display tracking-wide transition-all duration-200 ${
-                    filter === series
+                    filter === category
                       ? 'bg-gold-500 text-imperial-dark shadow-lg'
                       : 'text-imperial-muted hover:text-gold-400'
                   }`}
                 >
-                  {series.replace(' Series', '').replace(/ \(.*\)/, '')}
+                  {category}
                 </button>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Coins Grid */}
+        {/* Symbols Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCoins.map(coin => (
-            <CoinGalleryCard key={coin.id} coin={coin} />
+          {filteredSymbols.map(symbol => (
+            <SymbolGalleryCard key={symbol.id} symbol={symbol} />
           ))}
         </div>
 
-        {filteredCoins.length === 0 && (
+        {filteredSymbols.length === 0 && (
           <div className="text-center py-12">
-            <span className="text-4xl text-imperial-muted/50 mb-4 block">🪙</span>
-            <p className="font-body text-imperial-muted">No coins found for the selected filter.</p>
+            <span className="text-4xl text-imperial-muted/50 mb-4 block">✦</span>
+            <p className="font-body text-imperial-muted">No symbols found for the selected filter.</p>
           </div>
         )}
 

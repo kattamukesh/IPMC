@@ -692,11 +692,13 @@ function getAvailableSymbols(db, possibleCoinLabels) {
   if (!possibleCoinLabels || possibleCoinLabels.length === 0) return [];
   const placeholders = possibleCoinLabels.map(() => '?').join(',');
   return db.prepare(`
-    SELECT DISTINCT s.id, s.label, s.description, s.image_filename, s.category
+    SELECT DISTINCT s.id, s.label, s.description, s.image_filename, s.category,
+           COUNT(DISTINCT cs.coin_label) as coin_count
     FROM symbols s
     INNER JOIN coin_symbols cs ON cs.symbol_label = s.label
     WHERE cs.coin_label IN (${placeholders})
-    ORDER BY s.label ASC
+    GROUP BY s.id, s.label, s.description, s.image_filename, s.category
+    ORDER BY coin_count DESC, s.label ASC
   `).all(...possibleCoinLabels);
 }
 
@@ -735,6 +737,20 @@ function getCoinDetails(db, coinLabels) {
 app.post('/session', (req, res) => {
   const session = createSession();
   res.json({ sessionId: session.id });
+});
+
+// GET /categories — get all unique symbol categories
+app.get('/categories', (req, res) => {
+  const db = getDb();
+  const categories = db.prepare(`
+    SELECT DISTINCT category FROM symbols
+    WHERE category IS NOT NULL
+    ORDER BY category ASC
+  `).all();
+
+  res.json({
+    categories: categories.map(c => c.category),
+  });
 });
 
 // POST /filter/size — filter coins by size, begin symbol picking
@@ -965,14 +981,61 @@ app.get('/result', (req, res) => {
   });
 });
 
-// GET /categories — all unique symbol categories
-app.get('/categories', (req, res) => {
-  const db = getDb();
-  const categories = db.prepare(`
-    SELECT DISTINCT category FROM symbols
-    WHERE category IS NOT NULL ORDER BY category ASC
-  `).all();
-  res.json({ categories: categories.map(c => c.category) });
+// GET /symbols/gallery — get all symbols with their associated coins for gallery display
+app.get('/symbols/gallery', (req, res) => {
+  try {
+    const db = getDb();
+
+    // Get all symbols with coin counts, sorted by occurrence
+    const symbols = db.prepare(`
+      SELECT s.id, s.label, s.description, s.image_filename, s.category,
+             COUNT(DISTINCT cs.coin_label) as coin_count
+      FROM symbols s
+      LEFT JOIN coin_symbols cs ON cs.symbol_label = s.label
+      GROUP BY s.id, s.label, s.description, s.image_filename, s.category
+      ORDER BY coin_count DESC, s.label ASC
+    `).all();
+
+    // Get coin associations for each symbol
+    const symbolCoins = db.prepare(`
+      SELECT sc.symbol_label, sc.position, c.id as coin_id, c.name, c.series
+      FROM coin_symbols sc
+      INNER JOIN coins c ON sc.coin_label = c.label
+      ORDER BY sc.symbol_label ASC, c.name ASC
+    `).all();
+
+    // Group coins by symbol_label
+    const coinsBySymbol = {};
+    symbolCoins.forEach(sc => {
+      if (!coinsBySymbol[sc.symbol_label]) {
+        coinsBySymbol[sc.symbol_label] = [];
+      }
+      coinsBySymbol[sc.symbol_label].push({
+        id: sc.coin_id,
+        name: sc.name,
+        series: sc.series,
+        position: sc.position
+      });
+    });
+
+    // Combine symbols with their associated coins
+    const symbolsWithCoins = symbols.map(symbol => ({
+      id: symbol.id,
+      label: symbol.label,
+      description: symbol.description,
+      imageUrl: `/assets/symbols/${symbol.image_filename}`,
+      category: symbol.category,
+      coinCount: symbol.coin_count,
+      coins: coinsBySymbol[symbol.label] || []
+    }));
+
+    res.json({
+      symbols: symbolsWithCoins
+    });
+  } catch (error) {
+    console.error('Error in /symbols/gallery:', error);
+    res.status(500).json({ error: 'Internal server error', details: error.message });
+  }
 });
 
 // GET /coins/gallery — get all coins with their symbols for gallery display
